@@ -1,9 +1,9 @@
-name: Kameera's Daily Commit
+name: Kameera's Daily Commits
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Every day at midnight UTC to runs every 7-8 min set cron to '*/1 * * * *'
-    #- cron: '*/1 * * * *'
+    - cron: '0 0 * * *'   # Daily at midnight UTC
+  workflow_dispatch:       # Manual trigger allowed
 
 jobs:
   commit:
@@ -15,24 +15,58 @@ jobs:
       with:
         ref: main 
 
-    - name: Create file and commit
+    - name: Configure Git
       run: |
-        FILE="commit_number.md"
-        if [ ! -f "$FILE" ]; then
-          echo "Hello, my name is Kameera Hemachandra" > "$FILE"
-          echo "commit number: 1" >> "$FILE"
-        else
-          CURRENT_COUNT=$(grep -oP 'commit number: \K\d+' "$FILE")
-          if [ -z "$CURRENT_COUNT" ]; then
-            CURRENT_COUNT=0
-          fi
-          NEXT_COUNT=$((CURRENT_COUNT + 1))
-          sed -i "/commit number: /c\commit number: $NEXT_COUNT" "$FILE"
-        fi
         git config --global user.name "kameera135"
-        git config --global user.email "kameerarandima@gmail.com"
-        git add "$FILE"
-        git commit -m "Hello, my name is kameera hemachandra. I update the repository."
+        git config --global user.email "yourusername@users.noreply.github.com"
+
+    - name: Generate realistic commits
+      run: |
+        FILES=("commit_number.md" "dev_notes.md" "activity.log" "misc_changes.md")
+        FIX_MSGS=("fix: typo in docs" "fix: update counter logic" "fix: sync activity log")
+        DOCS_MSGS=("docs: update readme" "docs: add daily developer note" "docs: polish documentation")
+        CHORE_MSGS=("chore: bump commit counter" "chore: record work log" "chore: log daily activity")
+        REFACTOR_MSGS=("refactor: simplify script" "refactor: cleanup workflow" "refactor: improve logic")
+        STYLE_MSGS=("style: format markdown" "style: improve readability")
+
+        # Decide how many commits today (weighted probability)
+        RAND=$((RANDOM % 100))
+        if [ $RAND -lt 40 ]; then
+          NUM_COMMITS=0
+        elif [ $RAND -lt 70 ]; then
+          NUM_COMMITS=$((RANDOM % 2 + 1))  # 1–2 commits
+        elif [ $RAND -lt 90 ]; then
+          NUM_COMMITS=3
+        else
+          NUM_COMMITS=$((RANDOM % 2 + 4))  # 4–5 commits
+        fi
+
+        echo "📊 Today will generate $NUM_COMMITS commits..."
+
+        for ((i=1; i<=NUM_COMMITS; i++)); do
+          FILE=${FILES[$RANDOM % ${#FILES[@]}]}
+
+          # Append content to file
+          echo "$(date -u) - commit $i" >> "$FILE"
+
+          # Pick random message category
+          MSG_TYPE=$((RANDOM % 5))
+          case $MSG_TYPE in
+            0) MSG=${FIX_MSGS[$RANDOM % ${#FIX_MSGS[@]}]} ;;
+            1) MSG=${DOCS_MSGS[$RANDOM % ${#DOCS_MSGS[@]}]} ;;
+            2) MSG=${CHORE_MSGS[$RANDOM % ${#CHORE_MSGS[@]}]} ;;
+            3) MSG=${REFACTOR_MSGS[$RANDOM % ${#REFACTOR_MSGS[@]}]} ;;
+            4) MSG=${STYLE_MSGS[$RANDOM % ${#STYLE_MSGS[@]}]} ;;
+          esac
+
+          git add "$FILE"
+          git commit -m "$MSG"
+
+          # Small delay to mimic human commits
+          sleep $((RANDOM % 15 + 5))
+        done
+
+    - name: Push changes
+      if: success()
+      run: |
         git push https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/kameera135/DailyCommits.git
-      env:
-        PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
