@@ -1,72 +1,209 @@
-name: Kameera's Daily Commits
+name: Realistic Daily Commits
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # Daily at midnight UTC
-  workflow_dispatch:       # Manual trigger allowed
+    # Run multiple times throughout the day to simulate real work patterns
+    - cron: '23 2 * * *'   # Early morning (2:23 AM UTC)
+    - cron: '45 6 * * *'   # Morning (6:45 AM UTC)
+    - cron: '15 10 * * *'  # Late morning (10:15 AM UTC)
+    - cron: '30 14 * * *'  # Afternoon (2:30 PM UTC)
+    - cron: '50 18 * * *'  # Evening (6:50 PM UTC)
+    - cron: '10 22 * * *'  # Night (10:10 PM UTC)
+  workflow_dispatch:
 
 jobs:
   commit:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
-        ref: main 
+        ref: main
+        fetch-depth: 0  # Full history for better commit tracking
 
     - name: Configure Git
       run: |
         git config --global user.name "kameera135"
-        git config --global user.email "yourusername@users.noreply.github.com"
+        git config --global user.email "kameera135@users.noreply.github.com"
 
     - name: Generate realistic commits
       run: |
-        FILES=("commit_number.md" "dev_notes.md" "activity.log" "misc_changes.md")
-        FIX_MSGS=("fix: typo in docs" "fix: update counter logic" "fix: sync activity log")
-        DOCS_MSGS=("docs: update readme" "docs: add daily developer note" "docs: polish documentation")
-        CHORE_MSGS=("chore: bump commit counter" "chore: record work log" "chore: log daily activity")
-        REFACTOR_MSGS=("refactor: simplify script" "refactor: cleanup workflow" "refactor: improve logic")
-        STYLE_MSGS=("style: format markdown" "style: improve readability")
-
-        # Decide how many commits today (weighted probability)
-        RAND=$((RANDOM % 100))
-        if [ $RAND -lt 40 ]; then
-          NUM_COMMITS=0
-        elif [ $RAND -lt 70 ]; then
-          NUM_COMMITS=$((RANDOM % 2 + 1))  # 1–2 commits
-        elif [ $RAND -lt 90 ]; then
-          NUM_COMMITS=3
+        # Files to modify (realistic project files)
+        FILES=(
+          "src/utils.py"
+          "src/config.json"
+          "docs/README.md"
+          "tests/test_main.py"
+          ".gitignore"
+          "requirements.txt"
+          "CHANGELOG.md"
+          "src/main.py"
+        )
+        
+        # Realistic commit messages by category
+        declare -a FEAT_MSGS=(
+          "feat: add error handling for edge cases"
+          "feat: implement caching mechanism"
+          "feat: add validation for user input"
+          "feat: improve performance metrics"
+          "feat: add logging functionality"
+        )
+        
+        declare -a FIX_MSGS=(
+          "fix: resolve memory leak issue"
+          "fix: correct timestamp calculation"
+          "fix: handle null pointer exception"
+          "fix: update deprecated API calls"
+          "fix: resolve merge conflict"
+          "fix: correct typo in function name"
+        )
+        
+        declare -a DOCS_MSGS=(
+          "docs: update installation guide"
+          "docs: add API examples"
+          "docs: improve code comments"
+          "docs: update changelog"
+          "docs: fix broken links"
+        )
+        
+        declare -a REFACTOR_MSGS=(
+          "refactor: simplify complex logic"
+          "refactor: extract helper function"
+          "refactor: improve code readability"
+          "refactor: optimize database queries"
+          "refactor: restructure module imports"
+        )
+        
+        declare -a CHORE_MSGS=(
+          "chore: update dependencies"
+          "chore: clean up unused imports"
+          "chore: update .gitignore"
+          "chore: bump version number"
+          "chore: update CI configuration"
+        )
+        
+        declare -a TEST_MSGS=(
+          "test: add unit tests for new feature"
+          "test: improve test coverage"
+          "test: fix failing integration test"
+          "test: add edge case scenarios"
+        )
+        
+        # Determine day of week (0-6, Sunday=0)
+        DAY_OF_WEEK=$(date +%u)
+        HOUR=$(date +%H)
+        
+        # Realistic activity patterns
+        # Weekends: 30% chance of any activity
+        # Weekdays: varies by time of day
+        # Some days: no commits (burnout/meetings/life happens)
+        
+        ACTIVITY_CHANCE=$((RANDOM % 100))
+        
+        # Weekend check (Saturday=6, Sunday=7)
+        if [ "$DAY_OF_WEEK" -eq 6 ] || [ "$DAY_OF_WEEK" -eq 7 ]; then
+          if [ $ACTIVITY_CHANCE -gt 30 ]; then
+            echo "🏖️ Weekend - no commits today"
+            exit 0
+          fi
+          MAX_COMMITS=2  # Light weekend work
         else
-          NUM_COMMITS=$((RANDOM % 2 + 4))  # 4–5 commits
+          # Weekday logic
+          # Random "off" days (20% chance)
+          if [ $ACTIVITY_CHANCE -lt 20 ]; then
+            echo "📅 Taking a break today - no commits"
+            exit 0
+          fi
+          
+          # Vary commits by time of day
+          if [ "$HOUR" -ge 2 ] && [ "$HOUR" -lt 6 ]; then
+            MAX_COMMITS=1  # Early morning: minimal
+          elif [ "$HOUR" -ge 6 ] && [ "$HOUR" -lt 12 ]; then
+            MAX_COMMITS=4  # Morning: productive
+          elif [ "$HOUR" -ge 12 ] && [ "$HOUR" -lt 18 ]; then
+            MAX_COMMITS=5  # Afternoon: peak productivity
+          elif [ "$HOUR" -ge 18 ] && [ "$HOUR" -lt 22 ]; then
+            MAX_COMMITS=3  # Evening: moderate
+          else
+            MAX_COMMITS=1  # Night: minimal
+          fi
         fi
-
-        echo "📊 Today will generate $NUM_COMMITS commits..."
-
+        
+        # Decide actual number of commits (with randomness)
+        COMMIT_ROLL=$((RANDOM % 100))
+        if [ $COMMIT_ROLL -lt 15 ]; then
+          NUM_COMMITS=0  # 15% chance: no commits this session
+        elif [ $COMMIT_ROLL -lt 45 ]; then
+          NUM_COMMITS=1  # 30% chance: 1 commit
+        elif [ $COMMIT_ROLL -lt 75 ]; then
+          NUM_COMMITS=$((RANDOM % 2 + 2))  # 30% chance: 2-3 commits
+        else
+          NUM_COMMITS=$((RANDOM % MAX_COMMITS + 1))  # 25% chance: 1-MAX
+        fi
+        
+        if [ $NUM_COMMITS -eq 0 ]; then
+          echo "⏸️ No commits this session"
+          exit 0
+        fi
+        
+        echo "💻 Generating $NUM_COMMITS realistic commit(s)..."
+        
         for ((i=1; i<=NUM_COMMITS; i++)); do
+          # Pick random file
           FILE=${FILES[$RANDOM % ${#FILES[@]}]}
-
-          # Append content to file
-          echo "$(date -u) - commit $i" >> "$FILE"
-
-          # Pick random message category
-          MSG_TYPE=$((RANDOM % 5))
-          case $MSG_TYPE in
-            0) MSG=${FIX_MSGS[$RANDOM % ${#FIX_MSGS[@]}]} ;;
-            1) MSG=${DOCS_MSGS[$RANDOM % ${#DOCS_MSGS[@]}]} ;;
-            2) MSG=${CHORE_MSGS[$RANDOM % ${#CHORE_MSGS[@]}]} ;;
-            3) MSG=${REFACTOR_MSGS[$RANDOM % ${#REFACTOR_MSGS[@]}]} ;;
-            4) MSG=${STYLE_MSGS[$RANDOM % ${#STYLE_MSGS[@]}]} ;;
-          esac
-
+          
+          # Ensure file exists
+          mkdir -p "$(dirname "$FILE")"
+          touch "$FILE"
+          
+          # Add realistic content
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          RANDOM_CHANGE=$((RANDOM % 1000))
+          echo "[$TIMESTAMP] Change #$RANDOM_CHANGE" >> "$FILE"
+          
+          # Pick message category based on realistic distribution
+          MSG_ROLL=$((RANDOM % 100))
+          if [ $MSG_ROLL -lt 35 ]; then
+            # 35% fixes
+            MSG=${FIX_MSGS[$RANDOM % ${#FIX_MSGS[@]}]}
+          elif [ $MSG_ROLL -lt 60 ]; then
+            # 25% features
+            MSG=${FEAT_MSGS[$RANDOM % ${#FEAT_MSGS[@]}]}
+          elif [ $MSG_ROLL -lt 75 ]; then
+            # 15% docs
+            MSG=${DOCS_MSGS[$RANDOM % ${#DOCS_MSGS[@]}]}
+          elif [ $MSG_ROLL -lt 87 ]; then
+            # 12% refactor
+            MSG=${REFACTOR_MSGS[$RANDOM % ${#REFACTOR_MSGS[@]}]}
+          elif [ $MSG_ROLL -lt 95 ]; then
+            # 8% chores
+            MSG=${CHORE_MSGS[$RANDOM % ${#CHORE_MSGS[@]}]}
+          else
+            # 5% tests
+            MSG=${TEST_MSGS[$RANDOM % ${#TEST_MSGS[@]}]}
+          fi
+          
           git add "$FILE"
-          git commit -m "$MSG"
-
-          # Small delay to mimic human commits
-          sleep $((RANDOM % 15 + 5))
+          
+          # Backdate commits randomly within the last few hours for realism
+          HOURS_AGO=$((RANDOM % 6))
+          MINUTES_AGO=$((RANDOM % 60))
+          COMMIT_DATE=$(date -u -d "$HOURS_AGO hours ago $MINUTES_AGO minutes ago" +"%Y-%m-%d %H:%M:%S")
+          
+          GIT_AUTHOR_DATE="$COMMIT_DATE" GIT_COMMITTER_DATE="$COMMIT_DATE" \
+            git commit -m "$MSG"
+          
+          echo "✅ Committed: $MSG"
+          
+          # Random delay between commits (5-45 seconds)
+          if [ $i -lt $NUM_COMMITS ]; then
+            sleep $((RANDOM % 40 + 5))
+          fi
         done
 
     - name: Push changes
       if: success()
       run: |
-        git push https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/kameera135/DailyCommits.git
+        git push origin main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
